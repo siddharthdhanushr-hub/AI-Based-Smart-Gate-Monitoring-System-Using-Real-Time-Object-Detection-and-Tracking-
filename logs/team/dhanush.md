@@ -151,5 +151,5 @@
 
 ### Git
 - Branch: `feature/dhanush-ai-backend`
-- Commit SHA: 2292025
-- Pull request: Targeting `main`
+- Commit SHA: 8c97b90
+- Pull request: https://github.com/siddharthdhanushr-hub/AI-Based-Smart-Gate-Monitoring-System-Using-Real-Time-Object-Detection-and-Tracking-/pull/1
