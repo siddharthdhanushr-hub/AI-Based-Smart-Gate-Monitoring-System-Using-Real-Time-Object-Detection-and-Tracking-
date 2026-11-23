@@ -7,6 +7,8 @@ import numpy as np
 from backend.app.counting.line_counter import LineCounter
 from backend.app.database import crud
 from backend.app.detection.detector import SimpleCentroidTracker
+from backend.app.services.camera_service import camera_service
+from backend.app.services.event_processor import monitoring_processor
 
 
 def test_end_to_end_pipeline_simulation(db_session):
@@ -70,3 +72,24 @@ def test_end_to_end_pipeline_simulation(db_session):
     assert stats["today"]["entries"] == 1
     assert stats["today"]["vehicle_entries"] == 1
     assert stats["by_class"]["car"]["entry"] == 1
+
+
+async def test_monitoring_processor_publishes_annotated_frames(monkeypatch):
+    raw_frame = np.zeros((8, 8, 3), dtype=np.uint8)
+    annotated_frame = np.full((8, 8, 3), 255, dtype=np.uint8)
+    processor = monitoring_processor
+
+    class FakePipeline:
+        def process_frame(self, frame, gate_line):
+            processor.is_running = False
+            return annotated_frame, []
+
+    monkeypatch.setattr(processor, "is_running", True)
+    monkeypatch.setattr(processor, "pipeline", FakePipeline())
+    monkeypatch.setattr(processor, "frame_index", 0)
+    monkeypatch.setattr(camera_service, "annotated_frame", None)
+    monkeypatch.setattr(camera_service, "get_latest_frame", lambda: raw_frame)
+
+    await processor._processing_loop()
+
+    assert np.array_equal(camera_service.get_latest_stream_frame(), annotated_frame)

@@ -132,7 +132,6 @@ def get_realtime_stats(db: Session) -> Dict[str, Any]:
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "is_active": True,
         "total_entries": all_time_entries,
         "total_exits": all_time_exits,
         "net_inside": max(0, all_time_entries - all_time_exits),
