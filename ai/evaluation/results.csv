@@ -1,0 +1,3 @@
+experiment_id,model_name,dataset_version,precision,recall,map50,map50_95,inference_time_ms,fps,status
+EXP-001,yolov8n-baseline,COCO-pretrained,TBD,TBD,TBD,TBD,TBD,TBD,PLANNED_COLAB
+EXP-002,yolov8n-custom-v1,Gate-Dataset-v1,TBD,TBD,TBD,TBD,TBD,TBD,PENDING_DATASET
