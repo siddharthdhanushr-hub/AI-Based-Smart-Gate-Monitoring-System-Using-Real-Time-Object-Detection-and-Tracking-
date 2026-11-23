@@ -9,6 +9,7 @@ from backend.app.database.session import get_db
 from backend.app.database import crud
 from backend.app.schemas.stats import RealtimeStatsResponse
 from backend.app.schemas.event import PaginatedEventsResponse, GateCrossingEventResponse
+from backend.app.services.event_processor import monitoring_processor
 
 router = APIRouter(prefix="/monitoring", tags=["Monitoring & Events"])
 
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/monitoring", tags=["Monitoring & Events"])
 def get_monitoring_stats(db: Session = Depends(get_db)):
     """Returns real-time cumulative, today, and per-class traffic statistics."""
     stats = crud.get_realtime_stats(db)
+    stats["is_active"] = monitoring_processor.is_running
     return stats
 
 

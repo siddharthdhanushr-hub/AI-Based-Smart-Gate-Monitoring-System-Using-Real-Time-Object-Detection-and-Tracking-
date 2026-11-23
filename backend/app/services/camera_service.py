@@ -23,6 +23,7 @@ class CameraService:
         self.cap: Optional[cv2.VideoCapture] = None
         self.is_running = False
         self.current_frame: Optional[np.ndarray] = None
+        self.annotated_frame: Optional[np.ndarray] = None
         self.lock = threading.Lock()
         self.worker_thread: Optional[threading.Thread] = None
         self.fps = 0.0
@@ -35,6 +36,8 @@ class CameraService:
             if self.is_running:
                 return True
 
+            self.current_frame = None
+            self.annotated_frame = None
             if source is not None:
                 self.source_value = str(source)
                 self.source_type = "file" if (os_is_file := not source.isdigit()) else "webcam"
@@ -58,6 +61,8 @@ class CameraService:
             if self.cap is not None:
                 self.cap.release()
                 self.cap = None
+            self.current_frame = None
+            self.annotated_frame = None
             logger.info("Camera service stopped.")
             return True
 
@@ -156,10 +161,21 @@ class CameraService:
                 return self.current_frame.copy()
             return None
 
+    def set_annotated_frame(self, frame: np.ndarray) -> None:
+        """Publishes an inference-annotated frame for the MJPEG stream."""
+        with self.lock:
+            self.annotated_frame = frame.copy()
+
+    def get_latest_stream_frame(self) -> Optional[np.ndarray]:
+        """Returns the newest annotated frame, or the raw frame before inference starts."""
+        with self.lock:
+            frame = self.annotated_frame if self.annotated_frame is not None else self.current_frame
+            return frame.copy() if frame is not None else None
+
     def get_mjpeg_stream(self) -> Generator[bytes, None, None]:
         """Generator yielding MJPEG multipart byte frames."""
         while self.is_running:
-            frame = self.get_latest_frame()
+            frame = self.get_latest_stream_frame()
             if frame is None:
                 time.sleep(0.03)
                 continue

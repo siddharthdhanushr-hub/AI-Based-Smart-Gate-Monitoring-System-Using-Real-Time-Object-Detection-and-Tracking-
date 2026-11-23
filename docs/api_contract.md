@@ -86,7 +86,8 @@ Changes the active camera input source without restarting the web service.
 ### 2.2. Live Video Feed
 
 #### `GET /api/video/stream`
-Returns an MJPEG stream of live frames annotated with bounding boxes, track IDs, class names, and the virtual gate line.
+Returns an MJPEG stream of live frames with the virtual gate line; detection boxes, track IDs, and class names are included when the configured detector model is loaded.
+The stream uses raw capture frames until the monitoring inference loop publishes its first annotated frame.
 
 - **Response Headers**:
   - `Content-Type: multipart/x-mixed-replace; boundary=frame`
@@ -105,6 +106,7 @@ Returns an MJPEG stream of live frames annotated with bounding boxes, track IDs,
 
 #### `GET /api/monitoring/stats`
 Returns aggregated real-time statistics (total counts, today's counts, and category breakdown).
+The `is_active` field reflects whether the monitoring inference loop is currently running.
 
 - **Query Parameters**: None
 - **Response `200 OK`**:

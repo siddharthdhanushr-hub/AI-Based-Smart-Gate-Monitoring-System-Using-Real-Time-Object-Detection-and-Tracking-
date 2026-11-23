@@ -3,6 +3,7 @@ Unit tests for FastAPI REST API endpoints using TestClient.
 """
 
 from fastapi.testclient import TestClient
+from backend.app.services.event_processor import monitoring_processor
 
 
 def test_root_status(client: TestClient):
@@ -40,7 +41,8 @@ def test_camera_source_switch(client: TestClient):
     assert data["source_value"] == "sample_video.mp4"
 
 
-def test_monitoring_stats_endpoint(client: TestClient):
+def test_monitoring_stats_endpoint(client: TestClient, monkeypatch):
+    monkeypatch.setattr(monitoring_processor, "is_running", False)
     response = client.get("/api/monitoring/stats")
     assert response.status_code == 200
     data = response.json()
@@ -48,6 +50,11 @@ def test_monitoring_stats_endpoint(client: TestClient):
     assert "total_exits" in data
     assert "today" in data
     assert "by_class" in data
+    assert data["is_active"] is False
+
+    monkeypatch.setattr(monitoring_processor, "is_running", True)
+    response = client.get("/api/monitoring/stats")
+    assert response.json()["is_active"] is True
 
 
 def test_monitoring_events_endpoint(client: TestClient):

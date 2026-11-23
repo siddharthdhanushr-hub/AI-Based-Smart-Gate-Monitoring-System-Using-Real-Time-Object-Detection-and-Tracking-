@@ -76,6 +76,7 @@ class MonitoringProcessor:
 
                 # Run detection and tracking
                 annotated_frame, tracked_objects = self.pipeline.process_frame(frame, self.gate_line)
+                camera_service.set_annotated_frame(annotated_frame)
                 now_ts = time.time()
 
                 # Process line crossing
