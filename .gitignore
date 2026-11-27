@@ -84,6 +84,9 @@ backend/app/gate_monitoring.db
 .coverage
 htmlcov/
 tests/sample_data/output_*.mp4
+runs/
+gate_monitoring_runs/
+.ultralytics/
 
 # OS generated files
 Thumbs.db
