@@ -63,3 +63,29 @@
 - **Context**: The React dashboard requires continuous real-time video and immediate metric updates when crossings occur.
 - **Decision**: Provide live video through a standard HTTP multipart MJPEG stream (`/api/video/stream`) and telemetry via an ASGI WebSocket channel (`/ws/monitoring`).
 - **Consequences**: Zero third-party streaming server dependencies; standard browser HTML5 `<img>` tag and WebSocket API natively supported.
+
+
+---
+
+## ADR-007: DeepSORT Multi-Object Tracking with 8D Kalman Kinematics
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: Basic centroid Euclidean distance tracking experiences track ID swaps and loss during rapid vehicle acceleration, pedestrian crossing clusters, or temporary visual occlusions (such as a vehicle passing behind a campus gate pillar).
+- **Decision**: Implement DeepSORT multi-object tracking utilizing an 8-dimensional Kalman filter kinematic model $[c_x, c_y, a, h, v_x, v_y, v_a, v_h]^T$ with:
+  1. Constant velocity motion prediction and measurement covariance projection.
+  2. Bipartite data association via Hungarian / linear sum assignment with IoU cost and class consistency penalties.
+  3. Formal track state machine (`Tentative` -> `Confirmed` -> `Deleted`).
+  4. Track persistence across occlusions for up to `max_age` (30) missing frames.
+  5. Strict schema conformance emitting ground-contact base coordinates $c = [(x_1 + x_2)//2, y_2]$.
+- **Consequences**: Eliminates track identity fragmentation; allows robust gate line crossing calculations even during temporary frame dropouts or object occlusions.
+
+---
+
+## ADR-008: Hardware Privacy Shutter Detection and Multi-Source Ingestion
+- **Date**: 2026-11-27
+- **Status**: Accepted
+- **Context**: In laptop and desktop environments, physical privacy shutters or OS permission restrictions cause camera capture drivers to emit black frames with hardware lock icons. This causes confusion if users cannot distinguish between system errors and physical shutter closures.
+- **Decision**:
+  1. Provide dynamic source switching across Physical Webcam (`0`), Campus Gate CCTV Video (`ai/dataset/sample_gate.mp4`), and Synthetic Simulation (`simulation`) directly accessible through REST (`POST /api/camera/source`) and the React dashboard.
+  2. Implement automated dark-frame detection ($E[\text{pixel}] < 5.0$) in `CameraService` when reading from physical webcams, rendering an informative on-screen warning banner advising the user to uncover the camera or select the recorded gate video.
+- **Consequences**: Eliminates black-screen confusion; permits seamless testing and demonstration on any workstation regardless of camera hardware availability.
