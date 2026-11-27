@@ -35,6 +35,7 @@ export function useMonitoring() {
   const [errors, setErrors] = useState([])
   const [cameraAction, setCameraAction] = useState(null)
   const [cameraError, setCameraError] = useState('')
+  const [selectedSource, setSelectedSource] = useState(import.meta.env.VITE_CAMERA_SOURCE || 'ai/dataset/sample_gate.mp4')
   const realtimeEventIds = useRef(new Set())
 
   const refresh = useCallback(async (signal, { showLoading = true } = {}) => {
@@ -183,13 +184,14 @@ export function useMonitoring() {
     }
   }, [handleRealtimeMessage])
 
-  const startMonitoring = useCallback(async () => {
+  const startMonitoring = useCallback(async (sourceOverride) => {
     setCameraAction('starting')
     setCameraError('')
+    const sourceToUse = sourceOverride || selectedSource || 'ai/dataset/sample_gate.mp4'
     try {
       const result = await requestJson('/api/camera/start', {
         method: 'POST',
-        body: JSON.stringify({ source: import.meta.env.VITE_CAMERA_SOURCE || '0' }),
+        body: JSON.stringify({ source: sourceToUse }),
       })
       if (result?.status !== 'success' || result.is_running !== true) {
         setIsActive(result?.is_running === false ? false : null)
@@ -203,6 +205,25 @@ export function useMonitoring() {
       setCameraError(`Could not start monitoring: ${messageOf(error)}`)
     } finally {
       setCameraAction(null)
+    }
+  }, [refresh, selectedSource])
+
+  const switchSource = useCallback(async (sourceType, sourceValue) => {
+    setSelectedSource(sourceValue)
+    setCameraError('')
+    if (isDemo) return
+    try {
+      const result = await requestJson('/api/camera/source', {
+        method: 'POST',
+        body: JSON.stringify({ source_type: sourceType, source_value: sourceValue }),
+      })
+      if (result?.status !== 'success') {
+        throw new Error(result?.message || 'Failed to switch camera source.')
+      }
+      setCameraConnected(false)
+      await refresh()
+    } catch (error) {
+      setCameraError(`Could not switch camera source: ${messageOf(error)}`)
     }
   }, [refresh])
 
@@ -251,6 +272,9 @@ export function useMonitoring() {
     websocketStatus,
     errors,
     refresh,
+    selectedSource,
+    setSelectedSource,
+    switchSource,
     cameraAction,
     cameraError,
     startMonitoring,
