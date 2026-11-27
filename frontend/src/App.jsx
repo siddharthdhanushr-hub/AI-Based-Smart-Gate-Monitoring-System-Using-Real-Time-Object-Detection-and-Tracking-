@@ -412,7 +412,24 @@ function LiveMonitoring({ monitoring }) {
           <span className="health-state state-muted">Backend camera controls unavailable in demo mode</span>
         ) : (
           <>
-            <button className="button button-secondary" onClick={monitoring.isActive ? monitoring.stopMonitoring : monitoring.startMonitoring} disabled={cameraActionPending}>
+            <label className="select-button" title="Select Video Source">
+              <select
+                aria-label="Camera Source"
+                value={monitoring.selectedSource || 'ai/dataset/sample_gate.mp4'}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const type = val.includes('.mp4') ? 'file' : val.includes('sim') ? 'simulation' : 'webcam'
+                  monitoring.switchSource(type, val)
+                }}
+                disabled={cameraActionPending}
+              >
+                <option value="ai/dataset/sample_gate.mp4">Gate Video (sample_gate.mp4)</option>
+                <option value="0">Physical Webcam (Device 0)</option>
+                <option value="simulation">Synthetic Simulation</option>
+              </select>
+              <ChevronDown size={14} />
+            </label>
+            <button className="button button-secondary" onClick={() => monitoring.isActive ? monitoring.stopMonitoring() : monitoring.startMonitoring(monitoring.selectedSource)} disabled={cameraActionPending}>
               <Radio size={15} /> {cameraActionLabel}
             </button>
             <button className="button button-secondary" onClick={retryStream} disabled={!canRetryStream} title={canRetryStream ? 'Reload the backend MJPEG stream' : 'Start monitoring before retrying the stream'}>

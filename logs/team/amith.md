@@ -102,3 +102,44 @@
 - Branch: `feature/amith-dashboard`
 - Commit SHA: TBD
 - Pull request: TBD
+
+
+---
+
+## Date: 2026-11-27
+
+### Work completed
+- Integrated dynamic video source selection directly into the React Live Monitoring interface (`frontend/src/App.jsx` and `frontend/src/hooks/useMonitoring.js`):
+  - Added source switcher control for: Gate Video (`ai/dataset/sample_gate.mp4`), Physical Webcam (`0`), and Synthetic Simulation (`simulation`).
+  - Added `switchSource` adapter invoking `POST /api/camera/source` with live reconnect backoff.
+- Enhanced backend `CameraService` (`backend/app/services/camera_service.py`):
+  - Added automatic detection of webcam privacy shutter closure or pitch-black frames ($E[\text{pixel}] < 5.0$).
+  - Added on-screen warning banner instructing users to uncover the camera or switch to the sample gate video.
+  - Added seamless relative path resolution for recorded CCTV video files.
+- Completed full frontend package installation and verified production Vite bundling (`npm run build`).
+
+### Files created/modified
+- `backend/app/services/camera_service.py`
+- `frontend/src/hooks/useMonitoring.js`
+- `frontend/src/App.jsx`
+- `logs/team/amith.md`
+
+### Technical decisions
+- Provided live source switching capability without requiring complete page refresh or backend process restart.
+- Added graceful visual guidance on webcam black/shutter states directly in the MJPEG stream to eliminate user confusion when hardware privacy shutters are active.
+
+### Tests performed
+- Executed `npm test` in `frontend/`: 8 passed in 174ms.
+- Executed `npm run build`: built production client bundle in 1.63s without errors.
+- Executed backend pytest suite: 40 passed in 0.76s.
+
+### Results
+- Frontend and backend camera controls verified with 100% test pass rate.
+
+### Pending tasks
+- Submit PR #5 targeting `main` for review and merge by Team Lead (Siddharth Dhanush R).
+
+### Git
+- Branch: `feature/amith-dashboard`
+- Commit SHA: Pending
+- Pull request: Pending

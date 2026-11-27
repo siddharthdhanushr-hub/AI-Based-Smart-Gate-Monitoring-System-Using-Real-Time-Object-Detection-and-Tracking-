@@ -6,6 +6,7 @@ and synthetic frame generation for headless/testing environments.
 from typing import Optional, Tuple, Generator
 import cv2
 import numpy as np
+import os
 import time
 import threading
 import logging
@@ -80,11 +81,22 @@ class CameraService:
         """Attempts to open physical/file source or falls back to synthetic frames."""
         self.is_synthetic = False
         try:
+            val_str = str(self.source_value).strip().lower()
+            if val_str in ("synthetic", "simulation", "sim"):
+                self.is_synthetic = True
+                self.cap = None
+                return
+
             if self.source_value.isdigit():
                 idx = int(self.source_value)
                 self.cap = cv2.VideoCapture(idx)
             else:
-                self.cap = cv2.VideoCapture(self.source_value)
+                video_path = self.source_value
+                if not os.path.isabs(video_path) and not os.path.exists(video_path):
+                    candidate = os.path.join(os.getcwd(), video_path)
+                    if os.path.exists(candidate):
+                        video_path = candidate
+                self.cap = cv2.VideoCapture(video_path)
 
             if not self.cap.isOpened():
                 logger.warning(f"Unable to open video source {self.source_value}. Falling back to synthetic stream.")
@@ -128,6 +140,18 @@ class CameraService:
                 ret, raw = self.cap.read()
                 if ret:
                     frame = raw
+                    # Check for dark frame or shutter block on physical webcam
+                    if self.source_type == "webcam" and np.mean(raw) < 5.0:
+                        cv2.rectangle(frame, (10, 10), (frame.shape[1] - 10, 75), (25, 25, 25), -1)
+                        cv2.rectangle(frame, (10, 10), (frame.shape[1] - 10, 75), (0, 140, 255), 2)
+                        cv2.putText(
+                            frame, "[!] WEBCAM PRIVACY SHUTTER CLOSED / PERMISSION BLOCKED",
+                            (25, 38), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 200, 255), 2
+                        )
+                        cv2.putText(
+                            frame, "Uncover camera or select Sample Gate Video in Dashboard",
+                            (25, 62), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (220, 220, 220), 1
+                        )
                 else:
                     # If recorded video reached end, loop it
                     if self.source_type == "file":
