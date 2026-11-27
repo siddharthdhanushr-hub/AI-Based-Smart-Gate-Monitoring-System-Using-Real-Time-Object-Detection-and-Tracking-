@@ -75,6 +75,7 @@ def linear_assignment(
         return [], list(range(cost_matrix.shape[0])), list(range(cost_matrix.shape[1]))
 
     try:
+        # pyrefly: ignore[missing-import]
         from scipy.optimize import linear_sum_assignment
         row_indices, col_indices = linear_sum_assignment(cost_matrix)
     except ImportError:
