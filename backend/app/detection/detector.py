@@ -7,6 +7,7 @@ for local testing before DeepSORT integration.
 from typing import List, Dict, Any, Tuple, Optional
 import numpy as np
 from ai.src.inference import GateObjectDetector
+from backend.app.detection.tracker_deepsort import DeepSortTracker
 
 
 class SimpleCentroidTracker:
@@ -108,9 +109,9 @@ class SimpleCentroidTracker:
 class DetectionPipeline:
     """Combines YOLO detector and object tracker."""
 
-    def __init__(self, detector: GateObjectDetector):
+    def __init__(self, detector: GateObjectDetector, tracker: Optional[Any] = None):
         self.detector = detector
-        self.tracker = SimpleCentroidTracker()
+        self.tracker = tracker if tracker is not None else DeepSortTracker()
 
     def process_frame(
         self,
