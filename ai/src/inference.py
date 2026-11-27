@@ -28,6 +28,16 @@ COCO_TO_GATE_MAP = {
     7: (5, "truck")
 }
 
+# Class-specific confidence thresholds to suppress out-of-domain false positives (e.g., ceiling fans)
+CLASS_CONFIDENCE_THRESHOLDS = {
+    "person": 0.45,
+    "bicycle": 0.50,
+    "motorcycle": 0.50,
+    "car": 0.55,
+    "bus": 0.65,
+    "truck": 0.65
+}
+
 
 class ModelLoader:
     """Loads YOLOv8 models safely with device and path validation."""
@@ -179,6 +189,20 @@ class GateObjectDetector:
                         class_id = raw_cls
                         class_name = GATE_CLASSES[raw_cls]
                     else:
+                        continue
+
+                    # Filter by class-specific threshold to suppress indoor/clutter false positives
+                    min_conf = CLASS_CONFIDENCE_THRESHOLDS.get(class_name, self.conf)
+                    if conf_val < min_conf:
+                        continue
+
+                    bw = max(1, x2 - x1)
+                    bh = max(1, y2 - y1)
+                    aspect_ratio = float(bw) / float(bh)
+
+                    # Plausibility check: Road vehicles (bus, truck) are horizontal objects,
+                    # not vertical ceiling fixtures or narrow vertical shadows (e.g. ceiling fans)
+                    if class_name in ("bus", "truck") and aspect_ratio < 0.65:
                         continue
 
                     cx = (x1 + x2) // 2
