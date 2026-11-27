@@ -208,3 +208,133 @@ def create_data_yaml(
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+
+def prepare_colab_surveillance_dataset(
+    video_path: str,
+    output_root: str,
+    stride: int = 15,
+    max_frames: int = 100,
+    include_background_negatives: bool = True
+) -> str:
+    """
+    Prepares a ready-to-train YOLOv8 gate dataset from surveillance video
+    and includes explicit background negative samples (0 labels) to suppress
+    false positives on indoor fixtures like ceiling fans and lights.
+
+    Returns the path to the generated data.yaml.
+    """
+    import cv2
+    import numpy as np
+
+    images_dir = os.path.join(output_root, "images")
+    labels_dir = os.path.join(output_root, "labels")
+
+    for split in ["train", "val", "test"]:
+        os.makedirs(os.path.join(images_dir, split), exist_ok=True)
+        os.makedirs(os.path.join(labels_dir, split), exist_ok=True)
+
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"Source video not found: {video_path}")
+
+    cap = cv2.VideoCapture(video_path)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = max(1, int(cap.get(cv2.CAP_PROP_FPS)))
+    cap.release()
+
+    extracted = extract_frames_from_video(
+        video_path=video_path,
+        output_dir=os.path.join(output_root, "extracted_raw"),
+        stride=stride,
+        prefix="gate_cctv"
+    )
+
+    if len(extracted) > max_frames:
+        extracted = extracted[:max_frames]
+
+    # Pre-train annotator using baseline YOLOv8n to bootstrap annotations
+    try:
+        from ultralytics import YOLO
+        detector = YOLO("yolov8n.pt")
+        has_yolo = True
+    except Exception:
+        detector = None
+        has_yolo = False
+
+    # Partition extracted frames into train (70%), val (20%), test (10%)
+    n = len(extracted)
+    n_train = max(1, int(n * 0.70))
+    n_val = max(1, int(n * 0.20))
+
+    splits_map = {
+        "train": extracted[:n_train],
+        "val": extracted[n_train:n_train + n_val],
+        "test": extracted[n_train + n_val:] if (n_train + n_val) < n else extracted[-1:]
+    }
+
+    # Class ID mapping: 0: person, 1: bicycle, 2: car, 3: motorcycle, 4: bus, 5: truck
+    coco_to_gate = {0: 0, 1: 1, 2: 2, 3: 3, 5: 4, 7: 5}
+
+    for split_name, frame_paths in splits_map.items():
+        for fpath in frame_paths:
+            fname = os.path.basename(fpath)
+            dest_img = os.path.join(images_dir, split_name, fname)
+            shutil.copy2(fpath, dest_img)
+
+            base = os.path.splitext(fname)[0]
+            lbl_path = os.path.join(labels_dir, split_name, f"{base}.txt")
+
+            boxes_lines = []
+            if has_yolo and detector is not None:
+                results = detector.predict(fpath, conf=0.35, verbose=False)
+                if results and len(results) > 0:
+                    r = results[0]
+                    h_img, w_img = r.orig_shape
+                    for box in r.boxes:
+                        coco_cls = int(box.cls.item())
+                        if coco_cls in coco_to_gate:
+                            gate_cls = coco_to_gate[coco_cls]
+                            xywhn = box.xywhn[0].tolist()
+                            boxes_lines.append(
+                                f"{gate_cls} {xywhn[0]:.6f} {xywhn[1]:.6f} {xywhn[2]:.6f} {xywhn[3]:.6f}"
+                            )
+
+            with open(lbl_path, "w", encoding="utf-8") as lf:
+                lf.write("\n".join(boxes_lines) + ("\n" if boxes_lines else ""))
+
+    # Generate negative background samples (empty labels) to suppress false positives
+    if include_background_negatives:
+        for split_name in ["train", "val"]:
+            for bg_idx in range(4):
+                bg_name = f"bg_negative_scene_{split_name}_{bg_idx}.jpg"
+                bg_img_path = os.path.join(images_dir, split_name, bg_name)
+                bg_lbl_path = os.path.join(labels_dir, split_name, f"bg_negative_scene_{split_name}_{bg_idx}.txt")
+
+                # Generate synthetic neutral background (wall/ceiling/road tones)
+                h, w = 480, 640
+                if bg_idx % 2 == 0:
+                    # Indoor ceiling / room gradient
+                    bg_img = np.full((h, w, 3), 220, dtype=np.uint8)
+                    cv2.circle(bg_img, (320, 240), 100, (180, 180, 180), -1)
+                else:
+                    # Outdoor asphalt / pavement texture
+                    bg_img = np.full((h, w, 3), 90, dtype=np.uint8)
+                    noise = np.random.normal(0, 15, (h, w, 3)).astype(np.int16)
+                    bg_img = np.clip(bg_img.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+
+                cv2.imwrite(bg_img_path, bg_img)
+                # In YOLO format, a 0-byte label file indicates an empty background image with NO objects
+                with open(bg_lbl_path, "w", encoding="utf-8") as lf:
+                    lf.write("")
+
+    yaml_path = os.path.join(output_root, "data.yaml")
+    create_data_yaml(
+        output_path=yaml_path,
+        dataset_root=os.path.abspath(output_root).replace("\\", "/"),
+        train_rel="images/train",
+        val_rel="images/val",
+        test_rel="images/test"
+    )
+
+    return yaml_path
+

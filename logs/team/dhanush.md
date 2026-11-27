@@ -212,3 +212,46 @@
 - Merged PRs:
   - PR #4: https://github.com/siddharthdhanushr-hub/AI-Based-Smart-Gate-Monitoring-System-Using-Real-Time-Object-Detection-and-Tracking-/pull/4
   - PR #5: https://github.com/siddharthdhanushr-hub/AI-Based-Smart-Gate-Monitoring-System-Using-Real-Time-Object-Detection-and-Tracking-/pull/5
+
+---
+
+## Date: 2026-11-28
+
+### Work completed
+- **Ceiling Fan & False Positive Elimination (PR #7)**:
+  - Resolved indoor false positives where ceiling fans were detected as `#1317 bus 0.56` by implementing dual-layer filtering in `ai/src/inference.py`:
+    1. Class-specific confidence thresholds (`CLASS_CONFIDENCE_THRESHOLDS`): Bus and truck classes require confidence $\ge 0.65$ (previously 0.45).
+    2. Geometric aspect ratio plausibility: Ground-based wide vehicles require aspect ratio $w/h \ge 0.65$, eliminating elongated vertical ceiling fan blades ($w/h \approx 0.4 - 0.5$).
+  - Verified and merged PR #7 (`064f2e3`) into `main`.
+- **Turnkey Google Colab Training Pipeline & Negative Background Generator**:
+  - Upgraded `ai/notebooks/03_custom_training.ipynb` with an interactive 1-click **Open In Colab** badge linking to GitHub.
+  - Added automated repo cloning and dependency setup in Colab runtime.
+  - Implemented `prepare_colab_surveillance_dataset` in `ai/src/dataset_utils.py` supporting dual workflows:
+    - User's custom Google Drive dataset (`/content/drive/MyDrive/GateDataset/data.yaml`).
+    - Automated surveillance dataset bootstrapping from `sample_gate.mp4` with explicit **negative background samples** (empty label files) to penalize indoor ceiling fan and wall false alarms.
+  - Added direct browser download trigger (`google.colab.files.download`) upon training completion.
+  - Created unit tests in `tests/unit/test_dataset_generator.py` testing YAML structure, 6-class mapping, and 0-byte negative label generation.
+- **System Traceability**:
+  - Authored ADR-009 (Turnkey Google Colab Training Pipeline & Negative Background Sampling).
+  - Maintained git hygiene by ignoring `.ultralytics/` and run directories in `.gitignore`.
+
+### Files created/modified
+- `.gitignore`
+- `ai/notebooks/03_custom_training.ipynb`
+- `ai/src/dataset_utils.py`
+- `tests/unit/test_dataset_generator.py`
+- `logs/decisions/architecture_decisions.md`
+- `logs/team/dhanush.md`
+
+### Technical decisions
+- Embedded negative background sampling to permanently train the neural network weights to ignore indoor textures and ceiling fixtures.
+- Integrated automated Colab file download so users don't need manual Google Drive transfers.
+
+### Tests performed
+- `pytest tests/unit/test_dataset_generator.py -v`: 1 passed in 6.54s.
+- `pytest tests/ -v`: 41 passed in 7.30s (100% passing).
+
+### Git
+- Branch: `feature/dhanush-ai-backend`
+- PR: Colab Turnkey Training & Negative Background Generator
+

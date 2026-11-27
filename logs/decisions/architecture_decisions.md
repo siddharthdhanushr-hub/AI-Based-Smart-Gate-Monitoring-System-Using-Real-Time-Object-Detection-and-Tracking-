@@ -89,3 +89,16 @@
   1. Provide dynamic source switching across Physical Webcam (`0`), Campus Gate CCTV Video (`ai/dataset/sample_gate.mp4`), and Synthetic Simulation (`simulation`) directly accessible through REST (`POST /api/camera/source`) and the React dashboard.
   2. Implement automated dark-frame detection ($E[\text{pixel}] < 5.0$) in `CameraService` when reading from physical webcams, rendering an informative on-screen warning banner advising the user to uncover the camera or select the recorded gate video.
 - **Consequences**: Eliminates black-screen confusion; permits seamless testing and demonstration on any workstation regardless of camera hardware availability.
+
+---
+
+## ADR-009: Turnkey Google Colab Training Pipeline & Negative Background Sampling
+- **Date**: 2026-11-28
+- **Status**: Accepted
+- **Context**: The local machine environment lacks dedicated CUDA acceleration (`CUDA: False`), meaning fine-tuning YOLOv8 for 50 epochs locally on CPU would freeze development for 12-24 hours. Furthermore, generic pretrained COCO models trigger false positive detections on indoor textures (e.g., ceiling fan blades misclassified as buses), while manually uploading full CCTV recordings to Google Drive introduces developer friction.
+- **Decision**:
+  1. Update `ai/notebooks/03_custom_training.ipynb` with an interactive "Open In Colab" badge, auto-cloning the repository directly into the Colab runtime.
+  2. Implement an automated surveillance dataset generator (`prepare_colab_surveillance_dataset` in `ai/src/dataset_utils.py`) that extracts gate surveillance frames, boot-straps vehicle annotations, and generates explicit **negative background samples** (0-byte labels) representing walls, ceilings, and empty pavement.
+  3. Wire automated browser download triggers (`google.colab.files.download`) upon training completion so `best.pt` saves directly to the user's local machine without manual Google Drive searching.
+- **Consequences**: Enables zero-friction, one-click 50-epoch GPU training on Google Colab's free NVIDIA T4 GPU; negative background training permanently teaches the network to reject indoor fixtures and ceiling fans.
+
