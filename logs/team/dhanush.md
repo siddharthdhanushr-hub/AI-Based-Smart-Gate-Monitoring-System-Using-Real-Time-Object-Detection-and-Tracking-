@@ -153,3 +153,62 @@
 - Branch: `feature/dhanush-ai-backend`
 - Commit SHA: 8c97b90
 - Pull request: https://github.com/siddharthdhanushr-hub/AI-Based-Smart-Gate-Monitoring-System-Using-Real-Time-Object-Detection-and-Tracking-/pull/1
+
+
+---
+
+## Date: 2026-11-27
+
+### Work completed
+- Assumed temporary multi-role ownership per team lead directive to deliver remaining computer vision tracking and frontend integration tasks while maintaining strict Git PR protocols.
+- **Computer Vision Stream (Chandrashekar's domain)**:
+  - Implemented 8D kinematic Kalman Filter (`backend/app/detection/kalman_filter.py`) and DeepSORT Multi-Object Tracking Engine (`backend/app/detection/tracker_deepsort.py`).
+  - Integrated `DeepSortTracker` as the default tracker in `DetectionPipeline` (`backend/app/detection/detector.py`).
+  - Added unit test suite `tests/unit/test_deepsort_tracking.py` (9 tests passing).
+  - Authored PR #4 on `feature/chandrashekar-computer-vision`, reviewed, and merged into `main` (Merge SHA: `324636e`).
+- **Frontend & Camera Service Stream (Amith's domain)**:
+  - Diagnosed Windows webcam hardware privacy shutter lock screen reported by user (`media_1795412635733_648058fe.png`).
+  - Enhanced `CameraService` (`backend/app/services/camera_service.py`) with dark frame detection and on-screen warning banner, plus relative file path resolution.
+  - Added dynamic video source selector dropdown to `LiveMonitoring` in `frontend/src/App.jsx` and `useMonitoring.js` supporting Campus Gate Video (`ai/dataset/sample_gate.mp4`), Webcam (`0`), and Simulation (`simulation`).
+  - Verified frontend with `npm test` (8 passing) and production Vite build (`npm run build`).
+  - Authored PR #5 on `feature/amith-dashboard`, reviewed, and merged into `main` (Merge SHA: `d6f34e1`).
+- **Architecture & System Documentation**:
+  - Recorded ADR-007 (DeepSORT Multi-Object Tracking with 8D Kalman Kinematics) and ADR-008 (Hardware Privacy Shutter Detection and Multi-Source Ingestion) in `logs/decisions/architecture_decisions.md`.
+  - Updated all team logs (`logs/team/chandrashekar.md`, `logs/team/amith.md`, `logs/team/dhanush.md`).
+  - Updated master project tracker `project_work_tracker.md`.
+
+### Files created/modified
+- `backend/app/detection/kalman_filter.py`
+- `backend/app/detection/tracker_deepsort.py`
+- `backend/app/detection/detector.py`
+- `backend/app/detection/__init__.py`
+- `backend/app/services/camera_service.py`
+- `tests/unit/test_deepsort_tracking.py`
+- `frontend/src/App.jsx`
+- `frontend/src/hooks/useMonitoring.js`
+- `logs/decisions/architecture_decisions.md`
+- `logs/team/chandrashekar.md`
+- `logs/team/amith.md`
+- `logs/team/dhanush.md`
+
+### Technical decisions
+- Decoupled tracking mathematics using constant-velocity Kalman filtering with Wojke covariance weighting and Hungarian bipartite matching.
+- Embedded runtime source selection in the React UI with zero-refresh camera switching.
+- Retained strict branch protection on `main`; all additions were submitted via pull requests and merged under Team Lead authority.
+
+### Tests performed
+- Backend test suite: `pytest tests/ -v` — 40 passed in 0.76s (100% passing).
+- Frontend test suite: `cd frontend; npm test` — 8 passed in 174ms (100% passing).
+- Frontend production bundle: `cd frontend; npm run build` — successful build in 1.63s.
+
+### Results
+- End-to-end smart gate monitoring system successfully integrated with multi-object tracking, real-time virtual line counting, SQLite persistence, WebSocket telemetry, live video streaming, and responsive React dashboard.
+
+### Pending tasks
+- Execute Colab experiment notebooks (`01_pretrained_baseline.ipynb` through `04_model_evaluation.ipynb`) using GPU when campus video recordings are ready for final model fine-tuning.
+
+### Git
+- Branches: `feature/chandrashekar-computer-vision`, `feature/amith-dashboard`, `main`
+- Merged PRs:
+  - PR #4: https://github.com/siddharthdhanushr-hub/AI-Based-Smart-Gate-Monitoring-System-Using-Real-Time-Object-Detection-and-Tracking-/pull/4
+  - PR #5: https://github.com/siddharthdhanushr-hub/AI-Based-Smart-Gate-Monitoring-System-Using-Real-Time-Object-Detection-and-Tracking-/pull/5
